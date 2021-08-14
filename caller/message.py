@@ -1,5 +1,3 @@
-from datetime import datetime
-
 class Message():
     """Message class, this is what would be sended
     """
@@ -11,6 +9,7 @@ class Message():
             callback (bool, optional): True if data stores a callback name. Defaults to False.
             status (str, optional): [description]. Defaults to "OK".
         """
+        from datetime import datetime
         self._data = data
         self._callback = callback
         self._classname = data.__class__.__name__
