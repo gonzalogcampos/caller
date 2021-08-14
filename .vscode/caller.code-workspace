@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "Tester",
+			"path": "../tester"
+		},
+		{
+			"name": "Caller",
+			"path": "../caller"
+		},
+		{
+			"name": "Workspace",
+			"path": "../.vscode"
+		}
+	],
+	"settings": {}
+}
