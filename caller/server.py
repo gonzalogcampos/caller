@@ -31,7 +31,7 @@ class SocketThread(Thread):
                 print(data)
                 self._conn.sendall(data) # !5
 
-def SERVER():
+def INIT_SERVER():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((config.HOST, config.PORT))
         s.listen()
