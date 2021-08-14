@@ -12,6 +12,9 @@ from Crypto import Random
     Cliente envia Mensaje cifrado con clave secreta.
     Servidor envia respuesta cifrada con clave secreta.
 """
+
+# TODO: This showld be an object stored by client sender an server thread.
+
 _RSA_BITS = 3072
 _AES_BITS = 256
 _RSA_KEY = RSA.generate(_RSA_BITS, Random.new().read) #generate public and private keys
