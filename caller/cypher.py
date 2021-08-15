@@ -1,7 +1,8 @@
 from os import getlogin
 from Crypto.PublicKey import RSA
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto import Random
+import config
 
 """
     Protocolo de seguridad:
@@ -13,105 +14,82 @@ from Crypto import Random
     Servidor envia respuesta cifrada con clave secreta.
 """
 
-# TODO: This showld be an object stored by client sender an server thread.
-
-_RSA_BITS = 3072
-_AES_BITS = 256
-_RSA_KEY = RSA.generate(_RSA_BITS, Random.new().read) #generate public and private keys
-_AES_KEY = None #If is server we will get it from client, if is client we will generate
-
-
-def RSA_BITS(bits):
-    global _RSA_BITS
-    _RSA_BITS = bits
-
-def AES_SIZE(bits):
-    global _AES_BITS
-    _AES_BITS = bits
-
-def AES_KEY(aes_key):
-    """
-    NO USE OF THIS NEEDED.
-    Sets the secret key
-
-    Args:
-        secrect_key (Secret key): secret key
-    """
-    global _AES_KEY
-    _AES_KEY = aes_key
-
-def _GENERATE_AES_KEY():
-    """
-    NO USE OF THIS NEEDED.
-    Only if AES_SIZE has chaged.
-    If Conection has started and you change the key is your problem.
-    """
-    import os
-    global _AES_KEY
-    _AES_KEY = os.urandom(_AES_BITS/8)
-
-def RSA_ENCRYPT_KEY(public_key):
-    """Only for server, takes the public key of
-    the client an cyphers a generated AES key with it
-
-    Args:
-        public_key (str): RSA clien public key
-
-    Returns:
-        Bits: The secret key generated cypher with private key
-    """
-    if not _AES_KEY:
-        _GENERATE_AES_KEY()
-    return public_key.encrypt(_AES_KEY)
-
-def RSA_DECRYPT_AND_SAVE(cyper_key):
-    """Only for client. Decrypts the cypher key
-    with the global private key. Then assigns it to
-    _AES_KEY global variable.
-
-    Args:
-        cyper_key (str): AES key cypered form server
-    """
-    global _AES_KEY
-    _AES_KEY = _RSA_KEY.decrypt(cyper_key)
-
-def AES_ENCRYPT(message):
-    """Encrypts a message with the AES protocol
-    using de global AES key.
-
-    Args:
-        message (Object): Object to be encrypted
-
-    Returns:
-        ciphertext, tag : Decrypted data, and tag to verify
+class Cyp():
+    def __init__(self):
+        self._rsa_key = RSA.generate(config._RSA_BITS, Random.new().read)
+        self._cypher = None
     
-    Raises:
-        Exception: If there is no key 
-    """
-    assert _AES_KEY, ("No AES key")
-    cipher = AES.new(_AES_KEY, AES.MODE_EAX)
-    data = _TO_BYTES(message)
-    return cipher.encrypt_and_digest(data)
+    @property
+    def rsa_publickey(self):
+        return self._rsa_key.public_key().export_key(format='PEM')
 
-def AES_DENCRYPT(data):
-    """Decrypts the message using the global AES key.
+    def encrypt_cypher(self, public_key):
+        import os
+        if self._cypher:
+            raise Exception("AES key was already created or imported")
 
-    Args:
-        message (Bits): Bits recived to be decypted.
+        key = os.urandom(int(config._AES_BITS/8))
+        self._cypher = AES.new(key, AES.MODE_ECB)
+        recipient_key = RSA.importKey(public_key)
+        cypher = PKCS1_OAEP.new(recipient_key)
+        return cypher.encrypt(key)
+    
+    def decrypt_cypher(self, key):
+        if self._cypher:
+            raise Exception("AES key was already created or imported")
+        recipient_key = self._rsa_key
+        cypher = PKCS1_OAEP.new(recipient_key)
+        key = cypher.decrypt(key)
+        self._cypher = AES.new(key, AES.MODE_ECB)
 
-    Returns:
-        Object: Decrypted object
-    """
-    assert _AES_KEY, ("No AES key")
-    cipher = AES.new(_AES_KEY, AES.MODE_EAX)
-    data = cipher.decrypt(data)
-    message = _FROM_BYTES(data)
-    return message
+    def encrypt(self, data):
+        assert self._cypher, ("No AES key")
+        return self._cypher.encrypt(data)
+
+    def decrypt(self, data):
+        assert self._cypher, ("No AES key")
+        data = self._cypher.decrypt(data)
+        return data
 
 def _TO_BYTES(object):
     import pickle
-    return pickle.dump(object)
+    return pickle.dumps(object)
 
 def _FROM_BYTES(data):
     import pickle
     return pickle.loads(data)
+
+if __name__ == '__main__':
+    class a():
+        def __init__(self, a, b=None):
+            self._a = a
+            self._b = b
+            self._c = "c"
+            self._d = [1, 2, 3]
+            self._e = {"1":1, "2":2}
+        
+        def pr(self):
+            print("Printin a object:")
+            print("   >>> a: {}".format(self._a))
+            print("   >>> b: {}".format(self._b))
+            print("   >>> c: {}".format(self._c))
+            print("   >>> d: {}".format(self._d))
+            print("   >>> e: {}".format(self._e))
+
+    a = a("a")
+    b = "Simple string"
+    c = [1, 2, 3, 4]
+    d = {"1": 1, "2": 2}
+
+    server = Cyp()
+    client = Cyp()
+
+    client_public = client.rsa_publickey  # Client creates RSA public  key
+    server_secret_e = server.encrypt_cypher(client_public)  # Server creates AES key and sends it encrypted
+    client.decrypt_cypher(server_secret_e)  # Client decrypts AES key and stores
+
+    b_e = client.encrypt(b)
+    print(str(b_e))
+    b_d = server.decrypt(b_e)
+    print(b_d)
+
