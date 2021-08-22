@@ -15,7 +15,7 @@ import base64
     Servidor envia respuesta cifrada con clave secreta.
 """
 
-class Cyp():
+class Cypher():
     def __init__(self):
         self._rsa_key = RSA.generate(config._RSA_BITS, Random.new().read)
         self._key = None
@@ -59,8 +59,8 @@ class Cyp():
 if __name__ == '__main__':
     a = "Simple string"
 
-    server = Cyp()
-    client = Cyp()
+    server = Cypher()
+    client = Cypher()
 
     client_public = client.rsa_publickey  # Client creates RSA public  key
     server_secret_e = server.create_and_encrypt_key(client_public)  # Server creates AES key and sends it encrypted
